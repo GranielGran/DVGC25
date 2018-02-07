@@ -1,38 +1,42 @@
-from flask                      import Flask
-from flask_sqlalchemy           import SQLAlchemy
-from sqlalchemy.orm             import relationship
-from datetime                   import datetime
+from flask                          import Flask
+from sqlalchemy                     import Column, Date, Integer, String, ForeignKey
+from sqlalchemy                     import create_engine
+from sqlalchemy.ext.declarative     import declarative_base
+from sqlalchemy_utils               import database_exists, create_database
+from sqlalchemy.orm                 import relationship
+from datetime                       import datetime
 ##########################################################################################
 #Config and Instansiation                                                                #
 ##########################################################################################
-app = Flask(__name__)
-#Errors if not set
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
-#Assign Database
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/test.db'
-db = SQLAlchemy(app)
+
+engine = create_engine('sqlite:///database/datalog.db', echo=True)
+if not database_exists(engine.url): create_database(engine.url) 
+
+Base = declarative_base()
 
 ##########################################################################################
 #Tabel Creation                                                                         #
 ##########################################################################################
-class Sensors(db.Model):
+class Sensors(Base):
     __tablename__   = 'sensors'
-    id              = db.Column(db.Integer, primary_key = True)
-    moduleID        = db.Column(db.Integer, db.ForeignKey('module.id'), nullable = False)
-    reading         = db.Column(db.Integer, nullable = False)
-    timestamp       = db.Column(db.DateTime, nullable = False, default = datetime.utcnow)
-    sensorName      = db.Column(db.String(10), nullable = False)
+    id              = Column(Integer, primary_key = True)
+    moduleID        = Column(Integer, ForeignKey('modules.id'), nullable = False)
+    reading         = Column(Integer, nullable = False)
+    timestamp       = Column(Integer, nullable = False, default = datetime.utcnow)
+    sensorName      = Column(String(10), nullable = False)
 
-    def __repr__(self):
+    def __repr__(self): 
         return '<Sensor %r>' % self.sensorName
 
-class Modules(db.Model):
+class Modules(Base):
     __tablename__        = 'modules'
-    id                   = db.Column(db.Integer, primary_key = True)
-    moduleName           = db.Column(db.String(10), nullable = False)
+    id                   = Column(Integer, primary_key = True)
+    moduleName           = Column(String(10), nullable = False)
     sensorConnections    = relationship('Sensor')
     
     def __repr__(self):
         return 'Module %r' % self.moduleName
+
+Base.metadata.create_all(engine)
 
 
