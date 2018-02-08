@@ -1,25 +1,53 @@
-from sqlalchemy         import create_engine, MetaData, Table
-from sqlalchemy.orm     import mapper, sessionmaker
+from sqlalchemy import create_engine, MetaData, Table
+from AlchemyDB import Modules
+from AlchemyDB import Sensors
+from sqlalchemy.orm import sessionmaker
+from datetime import datetime, timedelta
 
 engine = create_engine('sqlite:///database/datalog.db')
 connection = engine.connect()
 
-result = connection.execute("select moduleName from Modules")
+initSession = sessionmaker(bind = engine) #Create session object
+session = initSession() #Bind session object
+
+"""
+Private Functions
+"""
+
+#Returns the timestamp closests to the input <timestamp> from the input <timestamps>
+def __getClosestTimestamp(timestamp, timestamps):
+    min(timestamps, key=lambda x:timedelta(x-timestmap))
+
+#Get a "Modules" entry with the given name <module>
+def __getModule(module):
+    return session.query(Modules).filter_by(moduleName = module).first()
+
+#Get a "Sensors" entry from a given module <module> with the given name <sensor>
+def __getSensor(module, sensor):
+    return session.query(Modules.sensorConnections).filter_by(sensorName = sensor, __getModule(module).id).first()
+
+"""
+Public Functions
+"""
+
+#Create a new "Sensors" entry for a given module <module> with name <sensor>
+def AddSensor(module, sensor):
+    session.add(Sensors(
+                moduleID = getModule(module).id, 
+                reading = 12.34, 
+                sensorName = sensor))
+    session.commit()
+
+#Create a new "Modules" entry with the give name input
+def AddModule(name): 
+    session.add(Modules(moduleName = name))
+    session.commit()
+
+def GetLatestSensorReading(timestamp, module, sensor):
+    latestTimestamp = __getClosestTimestamp(getSensor(module, sensor).timestamp, timestamp)
+    session.query()
 
 
-with connection.begin() as transaction:
-    r1 = connection.execute(Modules.select())
-    connection.execute(Modules.insert(), col1 = "Totoro")
-    transaction.commit()
-
-print(result)
-for row in result:
-    print("moduleName: {0}").format(row['moduleName'])
-
-connection.close()
-
-'''
-def getSensorReading(timestamp, module, sensor):
     #TODO
         #Fetch sensor reading table
         #Compare database timestamp with call timestmap
@@ -61,15 +89,5 @@ def postSensorReading(timestamp, module, sensor, reading)
         #write parameters timestamp and reading
         #too their respective module and sensor
 
-    pass
-
-
-def addSensorType(moduleName, sensorName):
-    #TODO add a sensor tabel to corresponding moduleName
-    pass
-
-def AddSensorModule(moduleName):
-    #TODO create new entry in the module table with moduleName 
-    db.session.add(Modules()) 
     pass
 '''
