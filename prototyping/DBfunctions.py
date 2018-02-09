@@ -1,52 +1,50 @@
-from sqlalchemy import create_engine, MetaData, Table
-from AlchemyDB import Modules
-from AlchemyDB import Sensors
+from sqlalchemy     import create_engine, MetaData, Table
+from AlchemyDB      import Node
+from AlchemyDB      import Sensor
 from sqlalchemy.orm import sessionmaker
-from datetime import datetime, timedelta
+from datetime       import datetime, timedelta
+""" Establish Connection to the database """
+engine      = create_engine('sqlite:///database/datalog.db')
+connection  = engine.connect()
 
-engine = create_engine('sqlite:///database/datalog.db')
-connection = engine.connect()
 
+""" Create a session object and bind it """
 initSession = sessionmaker(bind = engine) #Create session object
-session = initSession() #Bind session object
+session     = initSession() #Bind session object
 
-"""
-Private Functions
-"""
 
+""" Auxiallary Functions """
 #Returns the timestamp closests to the input <timestamp> from the input <timestamps>
-def __getClosestTimestamp(timestamp, timestamps):
-    min(timestamps, key=lambda x:timedelta(x-timestmap))
+def __ClosestTimestamp(timestamp, timestamps):
+    return min(timestamps, key=lambda x:timedelta(x-timestamp))
 
-#Get a "Modules" entry with the given name <module>
-def __getModule(module):
-    return session.query(Modules).filter_by(moduleName = module).first()
 
-#Get a "Sensors" entry from a given module <module> with the given name <sensor>
-def __getSensor(module, sensor):
-    return session.query(Modules.sensorConnections).filter_by(sensorName = sensor, __getModule(module).id).first()
-
-"""
-Public Functions
-"""
-
-#Create a new "Sensors" entry for a given module <module> with name <sensor>
-def AddSensor(module, sensor):
-    session.add(Sensors(
-                moduleID = getModule(module).id, 
-                reading = 12.34, 
-                sensorName = sensor))
+""" Private database functions """
+#Create a new "Sensor" entry for a given Node <Node> with name <sensor>
+def __addSensor(nodeName, sensorName, initReading, readTime):
+    newSensor = Sensor(reading = initReading, timestamp = readTime, name = sensorName)
+    session.add(newSensor)
+    __getNode(nodeName).sensorID = newSensor.id
     session.commit()
 
-#Create a new "Modules" entry with the give name input
-def AddModule(name): 
-    session.add(Modules(moduleName = name))
-    session.commit()
+#Create a new "Node" entry with the give name input
+def __addNode(nodeName): 
+    session.add(Node(name = nodeName))
+    session.commit() 
 
-def GetLatestSensorReading(timestamp, module, sensor):
-    latestTimestamp = __getClosestTimestamp(getSensor(module, sensor).timestamp, timestamp)
-    session.query()
+#Get a "Node" entry with the given name <Node>
+def __getNode(nodeName):
+    return session.query(Node).filter_by(name = nodeName).first()
 
+#Get a "Sensor" entry from a given Node <Node> with the given name <sensor>
+def __getSensor(nodeName, sensorName):
+    return session.query(Node.sensor).filter_by(name = sensorName).first()
+
+""" Public database Functions """
+def GetLatestSensorReading(timestamp, nodeName, sensorName):
+    latestTimestamp = __ClosestTimestamp(__getSensor(nodeName, sensorName).timestamp, timestamp)
+    latestReading = session.query(Node.sensor).filter_by(timestamp = latestTimestamp).first()
+    return latestReading
 
     #TODO
         #Fetch sensor reading table
@@ -54,40 +52,27 @@ def GetLatestSensorReading(timestamp, module, sensor):
         #return value
     pass
 
-def getConnectedSensors(moduleName):
+def postSensorReading(Node, sensor, readTime, reading):
+    sessSensor = __getSensor(__getNode(Node), sensor).first()
+    session.execute(sessSensor.insert(), {'reading': reading, 'timestamp': readTime})
+
+
+
+def getConnectedSensor(Node):
     #TODO
-        #getModule(moduleName) find the module entry
-        #Get sensors from the return
+        #getNode(Node) find the Node entry
+        #Get Sensor from the return
         #return sensor list
     pass
 
 
-#Takes a name and searches the DB for a Module entry with the corresponding moduleName field
-def getModule(moduleName):
-    #TODO return the DB object corresponding the moduleName parameter
-
-    Modules.query.find()
-    pass
-
-#Queries the DB for all module entries and returns them as a Array
-def getModules():
-    instances = []
-    for instance in Modules.query.Find_all():
-        instances.append(instance)
-    
-    return instances
-
 def getReadingsByType(sensorType):
     #TODO return the readings of every sensor of type<sensorType> 
-    for modules in getModules():
-        modules.query()
     pass
 
+__addNode("testNode#1")
+__addSensor('testNode#1', 'testSensor#1', 34.235, datetime.now())
 
-def postSensorReading(timestamp, module, sensor, reading)
-    #TODO
-        #write parameters timestamp and reading
-        #too their respective module and sensor
+#postSensorReading('testNode#1', 'testSesnor#1', datetime.now(), 24.235)
 
-    pass
-'''
+
